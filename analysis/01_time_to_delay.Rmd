@@ -1,0 +1,111 @@
+---
+title: "01_time_to_delay"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+library(broom)
+library(dplyr)
+library(splines)
+library(purrr)
+library(tidyr)
+library(sandwich)
+library(emmeans)
+library(ggplot2)
+library(fixest)
+library(tidyr)
+library(patchwork)
+library(scales)
+library(kableExtra)
+library(stargazer)
+library(lme4)
+library(broom.mixed)  # For tidying lmer output
+library(lmerTest)
+library(knitr)
+source('~/afc-claire/code/EDA/00_partisan_difference_functions.R')
+```
+
+## Data cleaning
+```{r}
+# outcome is 
+data_vax_late = process_data(filename = 'child_politics_covariates_05012025.csv.zip', 
+                             time_var = 'time_to_vax', 
+                             filter_yr = 1988, 
+                             filter_outcome_time= 100,
+                             filter_engage_time = 1,
+                             remove_after_4 = FALSE)
+```
+
+```{r}
+data <- data_vax_late %>%
+  filter(indic == TRUE)
+data$delay <- as.numeric(data$time_to_vax)-(16/12)
+data$delay <- pmax(data$delay, 0)
+data$delay <- as.numeric(data$delay)*365
+nrow(data)
+```
+
+Plot the disparity in time to delay over time
+```{r}
+plot_year_disparity(data, outcome = 'delay', 
+                    party_baseline = "D", 
+                    title = "", 
+                    hist_title = "Number of Observations per Year",
+                    ylab = "Estimated Gap in Refusal Rate",
+                    line_color = "darkslategray4",
+                    hist_color = "darkslategray4",
+                    legend = FALSE)
+
+ggsave(
+  '~/afc-claire/code/figures/time_to_delay.png',
+  width = 6,
+  height = 5)
+```
+
+Run the interaction model on time to delay
+```{r}
+nrow(data)
+model_table = interaction_model(data = data, ref_year = 1988, 
+                                outcome = 'delay', party_reference = 'D', 
+                                state_FE = FALSE, x = TRUE)
+```
+
+```{r}
+rownames(model_table) <- NULL
+# Generate LaTeX table with kable
+latex_out <- kable(model_table, 
+      format = "latex", 
+      caption = "Delay", 
+      booktabs = TRUE,  # For cleaner lines
+      align = c("l"),
+      escape = FALSE)  # Left-align the first column and right-align others
+cat(latex_out)
+```
+
+# Run a second analysis without outliers (post-age-7)
+```{r}
+data_no_outliers <- data %>%
+  filter(time_to_vax < 7)
+nrow(data_no_outliers)
+```
+
+```{r}
+model_table = interaction_model(data = data_no_outliers, ref_year = 1988, 
+                                outcome = 'delay', party_reference = 'D', 
+                                state_FE = FALSE, x = TRUE)
+```
+
+```{r}
+rownames(model_table) <- NULL
+# Generate LaTeX table with kable
+latex_out <- kable(model_table, 
+      format = "latex", 
+      caption = "Delay", 
+      booktabs = TRUE,  # For cleaner lines
+      align = c("l"),
+      escape = FALSE)  # Left-align the first column and right-align others
+cat(latex_out)
+```

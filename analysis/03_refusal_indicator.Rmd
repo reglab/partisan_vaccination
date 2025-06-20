@@ -1,0 +1,81 @@
+---
+title: "03_refusal_indicator"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+library(broom)
+library(dplyr)
+library(splines)
+library(purrr)
+library(tidyr)
+library(sandwich)
+library(emmeans)
+library(ggplot2)
+library(fixest)
+library(tidyr)
+library(patchwork)
+library(scales)
+library(kableExtra)
+library(stargazer)
+library(lme4)
+library(broom.mixed)  # For tidying lmer output
+library(lmerTest)
+library(knitr)
+source('~/afc-claire/code/EDA/00_partisan_difference_functions.R')
+```
+
+## Data cleaning
+```{r}
+# outcome is whether a vaccine was received
+data = process_data(filename = 'child_politics_refusals_covariates_05192025.csv.zip', 
+                    time_var = 'time_to_refusal', 
+                    filter_yr = 2000, 
+                    filter_outcome_time = 7,
+                    filter_engage_time = 1,
+                    remove_after_4 = FALSE)
+
+data$indic = as.numeric(data$indic)*100
+data$year_num = as.numeric(data$year_num)
+```
+
+```{r}
+nrow(data)
+sum(data$indic/100)
+
+# title: "Partisan Gap in Refusal Rate by Birth Year\n(Democrat-Republican)"
+plot_year_disparity(data, 
+                    party_baseline = "D",
+                    outcome = "indic",
+                    title = "", 
+                    hist_title = "Number of Observations per Year",
+                    ylab = "Estimated Gap in Refusal Rate\n(Percentage Points)",
+                    labFalse = "No Refusal",
+                    labTrue = "Refusal",
+                    line_color = 'salmon',
+                    hist_color = 'salmon')
+
+ggsave(
+  '~/afc-claire/code/figures/refusals.png',
+  width = 7,
+  height = 5)
+```
+
+```{r}
+model_table = interaction_model(data, party_reference = 'D',
+                                ref_year = 2000, outcome = 'indic', 
+                                state_FE = FALSE, x = TRUE)
+
+rownames(model_table) <- NULL
+# Generate LaTeX table with kable
+latex_out <- kable(model_table, 
+      format = "latex", 
+      caption = "Refusal Indicator", 
+      booktabs = TRUE,  # For cleaner lines
+      align = c("l"),
+      escape = FALSE)  # Left-align the first column and right-align others
+cat(latex_out)
+```
