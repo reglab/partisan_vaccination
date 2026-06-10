@@ -6,7 +6,7 @@ process_data <- function(filename, time_var,
                          remove_after_4 = FALSE){
   data = read_csv(paste0('/share/pi/deho-pi/AFC/mortonc/processed/',filename))
   
-  data = data %>%
+  data= data %>%
     filter(years_to_engage < filter_engage_time)
   
   data$time_to_event = data[time_var]
@@ -28,16 +28,19 @@ process_data <- function(filename, time_var,
   regions = read_csv(url)
   regions$state = regions$`State Code`
   
-  data = merge(regions,  data)
+  data = merge(data, regions, by.y = "State Code", by.x = "STATE")
   data$region = data$Region
   
   data <- data %>%
-    filter(party != "Bipartisan")
+    filter(party != "Both",
+           party != "Other")
   
   # Remove unknowns from the data
   data <- data %>%
     filter(gender != "Other/Unknown" &
-             urban_rural != "Unknown")
+            urban_rural != "Unknown" & 
+             !is.na(svi)&
+             STATE != "AK")
   
   # indic is true if vaccinated by age 4.
   data$gender = as.factor(data$gender)
@@ -251,17 +254,19 @@ add_stars_to_odds_ratios <- function(df) {
   return(df)
 }
 
-add_std_err <- function(df) {
+add_std_err <- function(df, logistic) {
   df$stars <- cut(as.numeric(df$p.value),
                   breaks = c(-Inf, 0.001, 0.01, 0.05, 0.1, Inf),
                   labels = c("***", "**", "*", ".", ""))
-  df$estimate_stderr <- paste0(mapply(add_space_before_positive, formatC(df$estimate, format = "f", digits = 3, flag = "0")),
-                               " (",mapply(formatC, -df$std.error*1.96+df$estimate, format = "f", digits = 2),',',
-                               mapply(formatC, df$std.error*1.96+df$estimate, format = "f", digits = 2),')')
-  #df$estimate_star <- paste0('\\makecell[l]{', 
-   #                          mapply(add_space_before_positive, as.numeric(formatC(df$estimate, digits = 2))), 
-   #                          df$stars,
-   #                          "\\\\ (",mapply(formatC, df$std.error, format = "e", digits = 2),")}")
+  if (logistic){
+    df$estimate_stderr <- paste0(mapply(add_space_before_positive, formatC(exp(df$estimate), format = "f", digits = 3, flag = "0")),
+                                 " (",mapply(formatC, exp(-df$std.error*1.96+df$estimate), format = "f", digits = 2),',',
+                                 mapply(formatC, exp(df$std.error*1.96+df$estimate), format = "f", digits = 2),')')
+  } else{
+    df$estimate_stderr <- paste0(mapply(add_space_before_positive, formatC(df$estimate, format = "f", digits = 3, flag = "0")),
+                                 " (",mapply(formatC, -df$std.error*1.96+df$estimate, format = "f", digits = 2),',',
+                                 mapply(formatC, df$std.error*1.96+df$estimate, format = "f", digits = 2),')')
+  }
   df$p_val <- ifelse(df$p.value < .001, "<0.001", formatC(df$p.value, digits = 2))
   #df$estimate_star <- paste0(round(df$estimate, 3), df$stars, "\n(", round(df$std.error, 3), ")")
   df <- df[, c("term", "estimate_stderr", "p_val")]
@@ -309,15 +314,15 @@ format_table_econometric <- function(tab, state_FE, x){
   return(tab_all)
 }
 
-format_table_jama <- function(tab, state_FE, x, party_reference = 'D'){
+format_table_jama <- function(tab, state_FE, x, party_reference = 'D', logistic = FALSE){
   #Apply and append stars to the odds ratio column
   tab_all <- merge(
-    add_std_err(as.data.frame(tab$minimal)),
+    add_std_err(as.data.frame(tab$minimal), logistic = logistic),
     merge(
-      add_std_err(as.data.frame(tab$medium)),
-      merge(add_std_err(as.data.frame(tab$maximal)),
-            merge(add_std_err(as.data.frame(tab$state)),
-                  add_std_err(as.data.frame(tab$prac)), by="Variable", all = TRUE), 
+      add_std_err(as.data.frame(tab$medium), logistic = logistic),
+      merge(add_std_err(as.data.frame(tab$maximal), logistic = logistic),
+            merge(add_std_err(as.data.frame(tab$state), logistic = logistic),
+                  add_std_err(as.data.frame(tab$prac), logistic = logistic), by="Variable", all = TRUE), 
             by="Variable", all = TRUE),
       by = "Variable", all = TRUE
     ),
@@ -348,15 +353,15 @@ format_table_jama <- function(tab, state_FE, x, party_reference = 'D'){
   return(final_df)
 }
 
-interaction_model <- function(data, ref_year, outcome, party_reference = 'D', state_FE = FALSE, x = FALSE){
+interaction_model <- function(data, ref_year, outcome, party_reference = 'D', state_FE = FALSE, x = FALSE, logistic = FALSE){
   data = format_for_model(data, 'indic', ref_year)
   
   control_terms <- list(
     minimal = "",
-    medium = "+ region + urban_rural + share_republican",
-    maximal = "+ region + urban_rural + share_republican + gender + race + hispanic",
-    state = "+ region + urban_rural + share_republican + gender + race + hispanic",
-    prac = "+ region + urban_rural + share_republican + gender + race + hispanic"
+    medium = "+ region + urban_rural + share_republican + svi",
+    maximal = "+ region + urban_rural + share_republican + gender + race + hispanic + svi",
+    state = "+ region + urban_rural + share_republican + gender + race + hispanic + svi",
+    prac = "+ region + urban_rural + share_republican + gender + race + hispanic + svi" 
   )
   
   tab <- list()
@@ -373,14 +378,15 @@ interaction_model <- function(data, ref_year, outcome, party_reference = 'D', st
       full_formula <- as.formula(base_formula)
     }
 
-    model <- feols(full_formula, data = data)
     
+    
+    if(logistic){
+      model <- feglm(full_formula, data = data, family = "logit")
+    } else{
+      model <- feols(full_formula, data = data)
+    }
     # Store tidy summary of fixed effects
-    #tab[[term]] <- broom::tidy(model)
     tab[[term]] <- broom::tidy(model)
-    
-    #tab[[term]] <- broom.mixed::tidy(model, effects = "fixed")
-    #means[[term]] <- mean(data[outcome])
     ns[[term]] <- nrow(data)
   }
   
@@ -402,7 +408,7 @@ interaction_model <- function(data, ref_year, outcome, party_reference = 'D', st
   print(c(p_val_min, p_val_med, p_val_max, p_val_state, p_val_prac))
  
   #tab_all = format_table_econometric(tab, state_FE, x = TRUE)
-  tab_all = format_table_jama(tab, state_FE, x = TRUE, party_reference = party_reference)
+  tab_all = format_table_jama(tab, state_FE, x = TRUE, party_reference = party_reference, logistic = logistic)
   
   
   return(tab_all)
@@ -452,8 +458,8 @@ interaction_model_policy <- function(data, party_reference, ref_year){
   
   control_terms <- list(
     minimal = "",
-    medium = "+ region + urban_rural + share_republican",
-    maximal = "+ region + urban_rural + share_republican + gender + race + hispanic "
+    medium = "+ region + urban_rural + share_republican + svi",
+    maximal = "+ region + urban_rural + share_republican + gender + race + hispanic + svi "
   )
   
   tab_med <- list()
@@ -529,8 +535,8 @@ interaction_model_policy <- function(data, party_reference, ref_year){
 compare_policies <- function(data, term){
   control_terms <- list(
     Minimal = c(),
-    Medium = c("region", "urban_rural" ,"share_republican"),
-    Maximal = c("region", "urban_rural", "share_republican", "gender", "race", "hispanic")
+    Medium = c("region", "urban_rural" ,"share_republican", "svi"),
+    Maximal = c("region", "urban_rural", "share_republican", "gender", "race", "hispanic", "svi")
   )
   data$policy <- ifelse(data$policy == 0, 0, 1)
   data$policy = as.factor(data$policy)

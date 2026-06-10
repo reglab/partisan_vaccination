@@ -1,5 +1,5 @@
 ---
-title: "01_time_to_delay"
+title: "01.5_time_to_delay_2018"
 output: pdf_document
 ---
 
@@ -30,7 +30,7 @@ source('~/afc-claire/code/analysis/00_partisan_difference_functions.R')
 
 Children with complete sex and urban/rural classification data
 ```{r}
-data_count = read_csv(paste0('/share/pi/deho-pi/AFC/mortonc/processed/child_politics_covariates_01202026.csv.zip'))
+data_count = read_csv(paste0('/share/pi/deho-pi/AFC/mortonc/processed/child_politics_covariates_01202026_2018.csv.zip'))
 data_count$birth_year = as.numeric(substr(data_count$dob, 1, 4))
 data_count <- data_count %>%
   filter(gender != "Other/Unknown" &
@@ -43,12 +43,6 @@ nrow(data_count %>% filter(party %in% c('Democratic', 'Republican')))
 
 Children who engaged with the AFC prior to age 1
 ```{r}
-engage_early <- data_count %>% filter(years_to_engage < 1) %>%
-  group_by(practiceid) %>%
-  summarize(n = n())
-
-print(length(unique(engage_early$practiceid)))
-
 ct = data_count %>% filter(years_to_engage < 1) %>%
   group_by(party) %>%
   summarize(n())
@@ -59,7 +53,7 @@ ct
 
 Children born in or after 1988
 ```{r}
-data_count = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
+data_count = process_data(filename = 'child_politics_covariates_01202026_2018.csv.zip', 
                              time_var = 'time_to_vax', 
                              filter_yr = 1988, 
                              filter_outcome_time= Inf,
@@ -70,7 +64,7 @@ nrow(data_count %>% filter(party %in% c('Democratic', 'Republican')))
 
 Children born in or after 2000
 ```{r}
-data_count = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
+data_count = process_data(filename = 'child_politics_covariates_01202026_2018.csv.zip', 
                              time_var = 'time_to_vax', 
                              filter_yr = 2000, 
                              filter_outcome_time= Inf,
@@ -82,7 +76,7 @@ nrow(data_count %>% filter(party %in% c('Democratic', 'Republican')))
 ## Data cleaning
 ```{r}
 # outcome is 
-data_vax_late = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
+data_vax_late = process_data(filename = 'child_politics_covariates_01202026_2018.csv.zip', 
                              time_var = 'time_to_vax', 
                              filter_yr = 1988, 
                              filter_outcome_time= 100,
@@ -111,12 +105,12 @@ plot_year_disparity(data, outcome = 'delay',
                     legend = FALSE)
 
 ggsave(
-  '~/afc-claire/code/figures/time_to_delay.png',
+  '~/afc-claire/code/figures/time_to_delay_2018.png',
   width = 6,
   height = 5)
 
 ggsave(
-  '~/afc-claire/code/figures/time_to_delay.pdf',
+  '~/afc-claire/code/figures/time_to_delay_2018.pdf',
   width = 6,
   height = 5)
 ```

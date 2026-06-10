@@ -25,12 +25,12 @@ library(lme4)
 library(broom.mixed)  # For tidying lmer output
 library(lmerTest)
 library(knitr)
-source('~/afc-claire/code/EDA/00_partisan_difference_functions.R')
+source('~/afc-claire/code/analysis/00_partisan_difference_functions.R')
 ```
 
 ```{r}
 # outcome is whether a vaccine was received
-data = process_data(filename = 'child_politics_refusals_covariates_05192025.csv.zip', 
+data = process_data(filename = 'child_politics_refusals_covariates_01202026.csv.zip', 
                     time_var = 'time_to_refusal', 
                     filter_yr = 2000, 
                     filter_outcome_time = 7,
@@ -41,12 +41,21 @@ data$indic = as.numeric(data$indic)*100
 data$year_num = as.numeric(data$year_num)
 ```
 
+
 ```{r}
-source('~/afc-claire/code/EDA/00_partisan_difference_functions.R')
+nrow(data)
+sum(data$indic)/100
+```
+
+```{r}
+source('~/afc-claire/code/analysis/00_partisan_difference_functions.R')
 
 refus_min <- compare_policies(data, 'Minimal')
 refus_med <- compare_policies(data, 'Medium')
 refus_max <- compare_policies(data, 'Maximal')
+
+sum(!is.na(data$svi))
+sum(data[!is.na(data$svi), 'indic'])/100
 
 table = rbind(refus_min, refus_med, refus_max)
 colnames(table) = c("Partisan Refusal Gap (95% CI)", "p value")
@@ -64,7 +73,7 @@ cat(latex_out)
 
 ```{r}
 # outcome is whether a vaccine was received
-data = process_data(filename = 'child_politics_covariates_05012025.csv.zip', 
+data = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
                              time_var = 'time_to_vax', 
                              filter_yr = 1988, 
                              filter_outcome_time= 3+11/12, # must have been vaccinated for an on time second dose
@@ -75,9 +84,17 @@ data$year_num = as.numeric(data$year_num)
 ```
 
 ```{r}
+nrow(data)
+sum(data$indic)/100
+```
+
+```{r}
 dat_min <- compare_policies(data, 'Minimal')
 dat_med <- compare_policies(data, 'Medium')
 dat_max <- compare_policies(data, 'Maximal')
+
+sum(!is.na(data$svi))
+sum(data[!is.na(data$svi), 'indic'])/100
 
 table = rbind(dat_min, dat_med, dat_max)
 colnames(table) = c("Partisan MMR Vaccine Gap (95% CI)", "p value")

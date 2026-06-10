@@ -30,7 +30,7 @@ source('~/afc-claire/code/analysis/00_partisan_difference_functions.R')
 
 ## Data checking
 ```{r}
-data_count = read_csv(paste0('/share/pi/deho-pi/AFC/mortonc/processed/child_politics_refusals_covariates_01202026.csv.zip'))
+data_count = read_csv(paste0('/share/pi/deho-pi/AFC/mortonc/processed/child_politics_refusals_covariates_01202026_2018.csv.zip'))
 data_count$birth_year = as.numeric(substr(data_count$dob, 1, 4))
 data_count %>%
   filter(gender != "Other/Unknown" &
@@ -48,7 +48,7 @@ data_count %>%
 ## Data cleaning
 ```{r}
 # outcome is whether a vaccine was received
-data = process_data(filename = 'child_politics_refusals_covariates_01202026.csv.zip', 
+data = process_data(filename = 'child_politics_refusals_covariates_01202026_2018.csv.zip', 
                     time_var = 'time_to_refusal', 
                     filter_yr = 2000, 
                     filter_outcome_time = 7,
@@ -80,80 +80,20 @@ plot_year_disparity(data,
                     hist_color = 'salmon')
 
 ggsave(
-  '~/afc-claire/code/figures/refusals.png',
+  '~/afc-claire/code/figures/refusals_2018.png',
   width = 7,
   height = 5)
 
 ggsave(
-  '~/afc-claire/code/figures/refusals.pdf',
+  '~/afc-claire/code/figures/refusals_2018.pdf',
   width = 7,
   height = 5)
-```
-Pull 2021 year spike numbers
-```{r}
-plt_2021 <- plot_year_disparity(data, 
-                    party_baseline = "D",
-                    outcome = "indic",
-                    title = "", 
-                    hist_title = "Number of Observations per Year",
-                    ylab = "Estimated Gap in Refusal Rate\n(Percentage Points)",
-                    labFalse = "No Refusal",
-                    labTrue = "Refusal",
-                    line_color = 'salmon',
-                    hist_color = 'salmon')
-plt_2021[[1]]$data
-```
-
-```{r}
-# fetch 2021+2020 compared to past 10 years
-data_2021 <- data %>% 
-  filter((year_num == 2021) | (year_num == 2020)) %>%
-  select(D, indic) %>%
-  mutate(year_group = 1)
-
-data_pre_2021 <- data %>% 
-  filter((year_num < 2020) & (year_num >= 2010)) %>%
-  select(D, indic) %>%
-  mutate(year_group = 0)
-
-# now we want to test whether the difference in refusal rates between Democrats and Republicans are different across the two datasets.
-# We can imagine two different distributions of each party's likelihood of refusal, one per year group, for a total of four distributions. 
-# We want to know whether the difference between the means of the two party distributions is different from one year group to the next.
-data_merged <- rbind(data_2021, data_pre_2021) %>%
-  mutate(indic = indic/100)
-model <- glm(indic ~ D * year_group,
-             data = data_merged, family = binomial)
-
-summary(model)
-
-model <- glm(indic ~ D * year_group,
-             data = data_merged)
-
-summary(model)
 ```
 
 ```{r}
 model_table = interaction_model(data, party_reference = 'D',
                                 ref_year = 2000, outcome = 'indic', 
                                 state_FE = FALSE, x = TRUE)
-
-sum(!is.na(data$svi))
-sum(data[!is.na(data$svi), 'indic'])/100
-rownames(model_table) <- NULL
-# Generate LaTeX table with kable
-latex_out <- kable(model_table, 
-      format = "latex", 
-      caption = "Refusal Indicator", 
-      booktabs = TRUE,  # For cleaner lines
-      align = c("l"),
-      escape = FALSE)  # Left-align the first column and right-align others
-cat(latex_out)
-```
-
-```{r}
-model_table = interaction_model(data %>% mutate(indic = indic/100), party_reference = 'D',
-                                ref_year = 2000, outcome = 'indic', 
-                                state_FE = FALSE, x = TRUE, logistic = TRUE)
 
 sum(!is.na(data$svi))
 sum(data[!is.na(data$svi), 'indic'])/100

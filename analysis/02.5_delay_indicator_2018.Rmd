@@ -31,7 +31,7 @@ source('~/afc-claire/code/analysis/00_partisan_difference_functions.R')
 ## Data cleaning
 ```{r}
 # outcome is whether a vaccine was received
-data = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
+data = process_data(filename = 'child_politics_covariates_01202026_2018.csv.zip', 
                              time_var = 'time_to_vax', 
                              filter_yr = 1988, 
                              filter_outcome_time= 3+11/12, # must have been vaccinated for an on track second dose
@@ -60,12 +60,12 @@ plot_year_disparity(data, outcome = 'indic',
                     labFalse = "Unvaccinated",
                     labTrue = "Vaccinated",)
 ggsave(
-  '~/afc-claire/code/figures/mmr_uptake.png',
+  '~/afc-claire/code/figures/mmr_uptake_2018.png',
   width = 7,
   height = 5)
 
 ggsave(
-  '~/afc-claire/code/figures/mmr_uptake.pdf',
+  '~/afc-claire/code/figures/mmr_uptake_2018.pdf',
   width = 7,
   height = 5)
 ```
@@ -88,27 +88,11 @@ latex_out <- kable(model_table,
 cat(latex_out)
 ```
 
-Logistic version
-```{r}
-model_table = interaction_model(data %>% mutate(indic = indic/100), party_reference = 'D', ref_year = 1988, outcome = 'indic', state_FE = FALSE, x = TRUE, logistic = TRUE)
-
-sum(!is.na(data$svi))
-sum(data[!is.na(data$svi), 'indic'])/100
-rownames(model_table) <- NULL
-# Generate LaTeX table with kable
-latex_out <- kable(model_table, 
-      format = "latex", 
-      caption = "3y11mo indic", 
-      booktabs = TRUE,  # For cleaner lines
-      align = c("l"),
-      escape = FALSE)  # Left-align the first column and right-align others
-cat(latex_out)
-```
 
 # ON-TIME VACCINATION
 ```{r}
 # outcome is whether a vaccine was received
-data = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
+data = process_data(filename = 'child_politics_covariates_01202026_2018.csv.zip', 
                              time_var = 'time_to_vax', 
                              filter_yr = 1988, 
                              filter_outcome_time= 16/12, # must have been vaccinated for an on time second dose
@@ -139,26 +123,10 @@ latex_out <- kable(model_table,
 cat(latex_out)
 ```
 
-```{r}
-model_table = interaction_model(data %>% mutate(indic = indic/100), party_reference = 'D', ref_year = 1988, outcome = 'indic', state_FE = FALSE, x = TRUE, logistic = TRUE)
-
-sum(!is.na(data$svi))
-sum(data[!is.na(data$svi), 'indic'])/100
-rownames(model_table) <- NULL
-# Generate LaTeX table with kable
-latex_out <- kable(model_table, 
-      format = "latex", 
-      caption = "3y11mo indic", 
-      booktabs = TRUE,  # For cleaner lines
-      align = c("l"),
-      escape = FALSE)  # Left-align the first column and right-align others
-cat(latex_out)
-```
-
 ## IN-TIME VACCINATION
 ```{r}
 # outcome is whether a vaccine was received
-data = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
+data = process_data(filename = 'child_politics_covariates_01202026_2018.csv.zip', 
                              time_var = 'time_to_vax', 
                              filter_yr = 1988, 
                              filter_outcome_time= 6+11/12, # must have been vaccinated for an on time second dose
@@ -169,23 +137,6 @@ data$year_num = as.numeric(data$year_num)
 ```
 ```{r}
 model_table = interaction_model(data, party_reference = 'D', ref_year = 1988, outcome = 'indic', state_FE = FALSE, x = TRUE)
-
-rownames(model_table) <- NULL
-sum(!is.na(data$svi))
-sum(data[!is.na(data$svi), 'indic'])/100
-# Generate LaTeX table with kable
-latex_out <- kable(model_table, 
-      format = "latex", 
-      caption = "3y11mo indic", 
-      booktabs = TRUE,  # For cleaner lines
-      align = c("l"),
-      escape = FALSE)  # Left-align the first column and right-align others
-cat(latex_out)
-```
-
-
-```{r}
-model_table = interaction_model(data %>% mutate(indic = indic/100), party_reference = 'D', ref_year = 1988, outcome = 'indic', state_FE = FALSE, x = TRUE, logistic = TRUE)
 
 rownames(model_table) <- NULL
 sum(!is.na(data$svi))

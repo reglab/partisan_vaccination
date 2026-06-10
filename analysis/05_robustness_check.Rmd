@@ -25,13 +25,13 @@ library(lme4)
 library(broom.mixed)  # For tidying lmer output
 library(lmerTest)
 library(knitr)
-source('~/afc-claire/code/EDA/00_partisan_difference_functions.R')
+source('~/afc-claire/code/analysis/00_partisan_difference_functions.R')
 ```
 
 ## Refusal Indicator
 ```{r}
 # outcome is whether a vaccine was received
-data = process_data(filename = 'child_politics_refusals_covariates_05192025.csv.zip', 
+data = process_data(filename = 'child_politics_refusals_covariates_01202026.csv.zip', 
                     time_var = 'time_to_refusal', 
                     filter_yr = 2000, 
                     filter_outcome_time = 7,
@@ -44,16 +44,145 @@ data = data %>%
   filter(parent_count <= 2)
 ```
 
+Children with valid time to refusal (> 0) with one or two potential parents
+```{r}
+nrow(data)
+sum(data$indic/100)
+```
+
 ```{r}
 model_table = interaction_model(data, party_reference = 'D',
                                 ref_year = 2000, outcome = 'indic', 
                                 state_FE = FALSE, x = TRUE)
+
+sum(!is.na(data$svi))
+sum(data[!is.na(data$svi), 'indic'])/100
+
 
 rownames(model_table) <- NULL
 # Generate LaTeX table with kable
 latex_out <- kable(model_table, 
       format = "latex", 
       caption = "Robustness -- Refusal Indicator", 
+      booktabs = TRUE,  # For cleaner lines
+      align = c("l"),
+      escape = FALSE)  # Left-align the first column and right-align others
+cat(latex_out)
+```
+
+
+
+## MMR Vaccination Indicator
+```{r}
+# outcome is whether a vaccine was received
+data = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
+                             time_var = 'time_to_vax', 
+                             filter_yr = 1988, 
+                             filter_outcome_time= 3+11/12, # must have been vaccinated for an on time second dose
+                             filter_engage_time = 1,
+                             remove_after_4 = FALSE)
+data$indic = as.numeric(data$indic)*100
+data$year_num = as.numeric(data$year_num)
+data = data %>%
+  filter(parent_count <= 2)
+```
+
+Children born in or after 1988 with 1 or 2 potential parents:
+Children with “on-track” first dose (received MMR vaccine at or after age 12 months and before age 3 years, 11 months) with 1 or 2 potential parents
+```{r}
+nrow(data)
+sum(data$indic/100)
+```
+
+```{r}
+model_table = interaction_model(data, party_reference = 'D', ref_year = 1988, outcome = 'indic', state_FE = FALSE, x = TRUE)
+
+rownames(model_table) <- NULL
+
+sum(!is.na(data$svi))
+sum(data[!is.na(data$svi), 'indic'])/100
+
+# Generate LaTeX table with kable
+latex_out <- kable(model_table, 
+      format = "latex", 
+      caption = "Robustness -- Delay indicator", 
+      booktabs = TRUE,  # For cleaner lines
+      align = c("l"),
+      escape = FALSE)  # Left-align the first column and right-align others
+cat(latex_out)
+```
+
+## MMR Vaccination Indicator (12-15 months)
+```{r}
+# outcome is whether a vaccine was received
+data = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
+                             time_var = 'time_to_vax', 
+                             filter_yr = 1988, 
+                             filter_outcome_time= 16/12, # must have been vaccinated for an on time second dose
+                             filter_engage_time = 1,
+                             remove_after_4 = FALSE)
+data$indic = as.numeric(data$indic)*100
+data$year_num = as.numeric(data$year_num)
+data = data %>%
+  filter(parent_count <= 2)
+```
+
+```{r}
+nrow(data)
+sum(data$indic/100)
+```
+
+```{r}
+model_table = interaction_model(data, party_reference = 'D', ref_year = 1988, outcome = 'indic', state_FE = FALSE, x = TRUE)
+
+rownames(model_table) <- NULL
+# Generate LaTeX table with kable
+latex_out <- kable(model_table, 
+      format = "latex", 
+      caption = "Robustness -- Vaccination age 12-15", 
+      booktabs = TRUE,  # For cleaner lines
+      align = c("l"),
+      escape = FALSE)  # Left-align the first column and right-align others
+cat(latex_out)
+```
+
+## Time to delay
+```{r}
+# outcome is 
+data_vax_late = process_data(filename = 'child_politics_covariates_01202026.csv.zip', 
+                             time_var = 'time_to_vax', 
+                             filter_yr = 1988, 
+                             filter_outcome_time= 6+11/12,
+                             filter_engage_time = 1,
+                             remove_after_4 = FALSE)
+
+data <- data_vax_late %>%
+  filter(indic == TRUE)
+data$delay <- as.numeric(data$time_to_vax)-(16/12)
+data$delay <- pmax(data$delay, 0)
+data$delay <- as.numeric(data$delay)*365
+nrow(data)
+data = data %>%
+  filter(parent_count <= 2)
+```
+
+Children with “in-time” first doses (received MMR vaccine at or after age 12 months and before age 6 years, 11 months) with 1 or 2 potential parents:
+```{r}
+nrow(data)
+```
+
+```{r}
+model_table = interaction_model(data = data, ref_year = 1988, 
+                                outcome = 'delay', party_reference = 'D', 
+                                state_FE = FALSE, x = TRUE)
+rownames(model_table) <- NULL
+
+sum(!is.na(data$svi))
+
+# Generate LaTeX table with kable
+latex_out <- kable(model_table, 
+      format = "latex", 
+      caption = "Robustness -- time to Delay", 
       booktabs = TRUE,  # For cleaner lines
       align = c("l"),
       escape = FALSE)  # Left-align the first column and right-align others

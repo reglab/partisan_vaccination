@@ -4,7 +4,7 @@ This repository contains code and publicly available data for our paper "Partisa
 
 ## Structure
 
-The repository is organized into “scripts” related to data preparation, “analysis” to create figures and tables from prepared data, and “data” for publicly available datasets prepared in the project. 
+The repository is organized into “scripts” and "regexes" related to data preparation, “analysis” to create figures and tables from prepared data, and “data” for publicly available datasets prepared in the project. 
 
 ### Scripts and Analysis 
 
